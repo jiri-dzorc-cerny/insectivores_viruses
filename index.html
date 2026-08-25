@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Interactive explorer of viruses reported in Eulipotyphla." />
+  <title>Insectivores & Viruses Explorer</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <p class="eyebrow">Systematic review companion</p>
+      <h1>Insectivores &amp; Viruses Explorer</h1>
+      <p class="lead">Explore reported virus detections in Eulipotyphla across hosts, places, time and methods.</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="panel controls" aria-labelledby="filters-title">
+      <div>
+        <p class="section-kicker">Explore the evidence</p>
+        <h2 id="filters-title">Filters</h2>
+      </div>
+      <div class="filter-grid">
+        <label>
+          Search
+          <input id="searchInput" type="search" placeholder="Host, virus, country…" />
+        </label>
+        <label>
+          Host family
+          <select id="hostFamilyFilter">
+            <option value="">All host families</option>
+          </select>
+        </label>
+        <label>
+          Detection method
+          <select id="methodFilter">
+            <option value="">All methods</option>
+          </select>
+        </label>
+        <label>
+          Study type
+          <select id="studyTypeFilter">
+            <option value="">All study types</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="stats-grid" aria-label="Summary statistics">
+      <article class="stat-card"><span id="recordCount">0</span><small>records</small></article>
+      <article class="stat-card"><span id="hostCount">0</span><small>host taxa</small></article>
+      <article class="stat-card"><span id="virusCount">0</span><small>virus taxa</small></article>
+      <article class="stat-card"><span id="countryCount">0</span><small>countries</small></article>
+    </section>
+
+    <section class="panel" aria-labelledby="table-title">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker">Current dataset</p>
+          <h2 id="table-title">Evidence table</h2>
+        </div>
+        <p id="statusMessage" class="status">Loading data…</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Host</th>
+              <th>Virus</th>
+              <th>Country</th>
+              <th>Year</th>
+              <th>Method</th>
+              <th>Study type</th>
+            </tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </div>
+      <p id="emptyState" class="empty-state" hidden>No records match the current filters.</p>
+    </section>
+
+    <section class="panel roadmap" aria-labelledby="roadmap-title">
+      <p class="section-kicker">Next layers</p>
+      <h2 id="roadmap-title">Planned interactive modules</h2>
+      <div class="roadmap-grid">
+        <article><strong>01</strong><h3>Host–virus network</h3><p>Interactive links between Eulipotyphla hosts and reported viruses.</p></article>
+        <article><strong>02</strong><h3>Geographic explorer</h3><p>Map detections by location while preserving the evidence reported by each study.</p></article>
+        <article><strong>03</strong><h3>Timeline</h3><p>Show how host–virus evidence accumulated through time.</p></article>
+        <article><strong>04</strong><h3>Evidence layers</h3><p>Compare PCR, sequencing, isolation, antigen and serological evidence.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">Insectivores &amp; Viruses systematic review · exploratory web companion</div>
+  </footer>
+
+  <script src="js/app.js" defer></script>
+</body>
+</html>
