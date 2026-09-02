@@ -2,17 +2,32 @@
 
 Interactive web explorer supporting a systematic review of viruses reported in Eulipotyphla (shrews, moles and hedgehogs).
 
-## Project goals
+## Current features
 
-The site is intended to provide an interactive view of the evidence base, including:
+- linked full-text, host-family, detection-method and study-type filters,
+- live summary statistics,
+- an interactive bipartite host–virus network,
+- node and link selection with evidence details,
+- a filtered evidence table,
+- responsive and keyboard-accessible controls.
 
-- host–virus associations,
-- geographic distribution,
-- temporal distribution,
-- detection methods and study types,
-- evidence strength and data gaps.
+The network is generated directly from `data/detections.csv`. No demonstration or inferred biological records are embedded in the interface. The underlying dataset should contain only information explicitly reported in the source articles unless a derived field is clearly labelled as such.
 
-The underlying data should contain only information explicitly reported in the source articles unless a derived field is clearly labelled as such.
+## Data schema
+
+`data/detections.csv` currently expects these columns:
+
+| Column | Content |
+| --- | --- |
+| `host_taxon` | Host name as recorded in the review dataset |
+| `host_family` | Host family used for filtering |
+| `virus_taxon` | Virus name or reported taxonomic label |
+| `country` | Reported sampling country |
+| `sampling_year` | Reported sampling year or period |
+| `detection_method` | PCR, sequencing, isolation, serology, antigen, etc. |
+| `study_type` | Natural detection, experimental infection, or another review category |
+| `source_id` | PMID, DOI, or internal source identifier |
+| `notes` | Optional source-grounded note |
 
 ## Repository structure
 
@@ -28,15 +43,9 @@ insectivores_viruses/
     └── detections.csv
 ```
 
-## Development status
-
-Initial GitHub Pages-ready scaffold. The current version contains no biological records yet.
-
 ## Local preview
 
-Because the page loads CSV data with `fetch()`, preview it through a simple local web server rather than by opening `index.html` directly.
-
-For example:
+Because the page loads CSV data with `fetch()`, preview it through a local web server rather than by opening `index.html` directly:
 
 ```bash
 python -m http.server 8000
@@ -46,9 +55,7 @@ Then open `http://localhost:8000`.
 
 ## Planned modules
 
-1. Overview / summary statistics
-2. Host–virus network
-3. Geographic explorer
-4. Timeline
-5. Evidence / methodology explorer
-6. Highlighted experimental infections and possible ecological implications
+1. Geographic explorer
+2. Timeline
+3. Evidence / methodology explorer
+4. Highlighted experimental infections and possible ecological implications
