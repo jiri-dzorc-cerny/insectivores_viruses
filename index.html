@@ -3,29 +3,34 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Interactive explorer of viruses reported in Eulipotyphla." />
-  <title>Insectivores & Viruses Explorer</title>
+  <meta name="description" content="Interactive explorer of virus evidence reported in Eulipotyphla." />
+  <title>Insectivores &amp; Viruses Explorer</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <header class="site-header">
-    <div class="container">
-      <p class="eyebrow">Systematic review companion</p>
-      <h1>Insectivores &amp; Viruses Explorer</h1>
-      <p class="lead">Explore reported virus detections in Eulipotyphla across hosts, places, time and methods.</p>
+    <div class="container header-layout">
+      <div>
+        <p class="eyebrow">Systematic review companion</p>
+        <h1>Insectivores <span>&amp;</span> Viruses</h1>
+      </div>
+      <p class="lead">Explore reported virus evidence across Eulipotyphla hosts, locations, years and study methods.</p>
     </div>
   </header>
 
   <main class="container">
     <section class="panel controls" aria-labelledby="filters-title">
-      <div>
-        <p class="section-kicker">Explore the evidence</p>
-        <h2 id="filters-title">Filters</h2>
+      <div class="controls-heading">
+        <div>
+          <p class="section-kicker">Explore the evidence</p>
+          <h2 id="filters-title">Filters</h2>
+        </div>
+        <button id="resetFilters" class="button-secondary" type="button">Reset filters</button>
       </div>
       <div class="filter-grid">
         <label>
           Search
-          <input id="searchInput" type="search" placeholder="Host, virus, country…" />
+          <input id="searchInput" type="search" placeholder="Host, virus, country…" autocomplete="off" />
         </label>
         <label>
           Host family
@@ -49,19 +54,52 @@
     </section>
 
     <section class="stats-grid" aria-label="Summary statistics">
-      <article class="stat-card"><span id="recordCount">0</span><small>records</small></article>
+      <article class="stat-card"><span id="recordCount">0</span><small>evidence records</small></article>
       <article class="stat-card"><span id="hostCount">0</span><small>host taxa</small></article>
       <article class="stat-card"><span id="virusCount">0</span><small>virus taxa</small></article>
-      <article class="stat-card"><span id="countryCount">0</span><small>countries</small></article>
+      <article class="stat-card"><span id="associationCount">0</span><small>host–virus links</small></article>
+    </section>
+
+    <section class="panel network-panel" aria-labelledby="network-title">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker">Association structure</p>
+          <h2 id="network-title">Host–virus network</h2>
+        </div>
+        <p id="networkStatus" class="status" aria-live="polite">Loading data…</p>
+      </div>
+
+      <div class="network-legend" aria-label="Network legend">
+        <span><i class="legend-dot host-dot"></i>Host taxa</span>
+        <span><i class="legend-dot virus-dot"></i>Virus taxa</span>
+        <span>Line width = number of evidence records</span>
+      </div>
+
+      <div class="network-layout">
+        <div id="networkCanvas" class="network-canvas">
+          <svg id="networkSvg" role="img" aria-labelledby="network-title networkDescription"></svg>
+          <p id="networkDescription" class="sr-only">A bipartite network linking host taxa on the left to virus taxa on the right.</p>
+          <div id="networkEmpty" class="network-empty" hidden>
+            <strong>No network to display</strong>
+            <span>Add records to <code>data/detections.csv</code> or broaden the current filters.</span>
+          </div>
+        </div>
+
+        <aside id="networkDetail" class="network-detail" aria-live="polite">
+          <p class="detail-label">Selection details</p>
+          <h3>Select a node or link</h3>
+          <p>Choose a host, virus or connecting line to isolate its evidence and inspect the associated records.</p>
+        </aside>
+      </div>
     </section>
 
     <section class="panel" aria-labelledby="table-title">
       <div class="section-heading">
         <div>
-          <p class="section-kicker">Current dataset</p>
+          <p class="section-kicker">Underlying evidence</p>
           <h2 id="table-title">Evidence table</h2>
         </div>
-        <p id="statusMessage" class="status">Loading data…</p>
+        <p id="statusMessage" class="status" aria-live="polite">Loading data…</p>
       </div>
 
       <div class="table-wrap">
@@ -84,12 +122,11 @@
 
     <section class="panel roadmap" aria-labelledby="roadmap-title">
       <p class="section-kicker">Next layers</p>
-      <h2 id="roadmap-title">Planned interactive modules</h2>
+      <h2 id="roadmap-title">Planned modules</h2>
       <div class="roadmap-grid">
-        <article><strong>01</strong><h3>Host–virus network</h3><p>Interactive links between Eulipotyphla hosts and reported viruses.</p></article>
-        <article><strong>02</strong><h3>Geographic explorer</h3><p>Map detections by location while preserving the evidence reported by each study.</p></article>
+        <article><strong>02</strong><h3>Geographic explorer</h3><p>Map detections using only locations reported in the source studies.</p></article>
         <article><strong>03</strong><h3>Timeline</h3><p>Show how host–virus evidence accumulated through time.</p></article>
-        <article><strong>04</strong><h3>Evidence layers</h3><p>Compare PCR, sequencing, isolation, antigen and serological evidence.</p></article>
+        <article><strong>04</strong><h3>Evidence layers</h3><p>Compare molecular, isolation, antigen and serological evidence.</p></article>
       </div>
     </section>
   </main>
