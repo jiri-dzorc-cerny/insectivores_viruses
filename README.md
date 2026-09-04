@@ -7,7 +7,8 @@ Interactive companion to a systematic review of viruses reported in Eulipotyphla
 - seven linked filters covering evidence, result, host, virus, country and method;
 - live counts of evidence records, articles, host taxa and virus taxa;
 - MDD-based host-species coverage by family;
-- interactive host–virus network with family overview and species-level drill-down;
+- interactive host–virus network with family, species/virus and article-level drill-down;
+- article tracks whose solid-line width follows the square root of tested hosts; dashed tracks indicate evidence without a usable host denominator;
 - study-level evidence table with PubMed or DOI links;
 - responsive, keyboard-accessible static interface suitable for GitHub Pages.
 
@@ -33,6 +34,7 @@ Working notes, exact source locations, assay-target detail, sequence accessions,
 - A quantitative prevalence is calculated only from rows explicitly marked as non-overlapping overall host-level results and containing numeric tested and positive counts.
 - Pooled sequencing can support an association but not individual-host prevalence without a host-level denominator.
 - Distinct virus targets are not summed merely because they map to the same genus.
+- At article level, the synthesis unit is host taxon × virus taxon × evidence layer × publication; parallel evidence layers remain separate.
 
 ## Repository structure
 

@@ -8,7 +8,8 @@ const state = {
   studies: [],
   hostReference: [],
   filtered: [],
-  selected: null
+  selected: null,
+  networkFocus: null
 };
 
 const els = {
@@ -29,6 +30,7 @@ const els = {
   networkEmpty: document.querySelector('#networkEmpty'),
   networkStatus: document.querySelector('#networkStatus'),
   networkMode: document.querySelector('#networkMode'),
+  networkBack: document.querySelector('#networkBack'),
   networkDetail: document.querySelector('#networkDetail'),
   body: document.querySelector('#resultsBody'),
   empty: document.querySelector('#emptyState'),
@@ -200,21 +202,23 @@ function quantitativeSummary(rows, detailed) {
     && numberOrNull(row.n_tested) !== null
     && numberOrNull(row.n_positive) !== null);
   const uniqueRecords = [...new Map(eligible.map((row) => [row.record_id, row])).values()];
+  if (!uniqueRecords.length) return { tested: null, positive: null, prevalence: null };
   const tested = uniqueRecords.reduce((sum, row) => sum + numberOrNull(row.n_tested), 0);
   const positive = uniqueRecords.reduce((sum, row) => sum + numberOrNull(row.n_positive), 0);
   return { tested, positive, prevalence: tested > 0 ? positive / tested : null };
 }
 
 function buildNetwork(rows) {
-  const detailed = Boolean(els.hostFamily.value);
+  const detailed = Boolean(els.hostFamily.value || els.virusFamily.value);
   const links = new Map();
 
   rows.filter((row) => isReported(row.host_latin) && isReported(row.virus_current)).forEach((row) => {
     const host = detailed ? row.host_latin : row.host_family;
     const virus = detailed ? row.virus_current : virusFamily(row);
     if (!host || !virus) return;
-    const key = `${host}\u0000${virus}`;
-    if (!links.has(key)) links.set(key, { host, virus, rows: [] });
+    const evidenceGroup = row.evidence_group;
+    const key = `${host}\u0000${virus}\u0000${evidenceGroup}`;
+    if (!links.has(key)) links.set(key, { host, virus, evidenceGroup, rows: [] });
     links.get(key).rows.push(row);
   });
 
@@ -264,21 +268,52 @@ function evenlySpaced(index, total, top, bottom) {
   return top + (index * (bottom - top)) / (total - 1);
 }
 
-function curvePath(source, target) {
+function curvePath(source, target, offset = 0) {
   const bend = (target.x - source.x) * .46;
-  return `M ${source.x} ${source.y} C ${source.x + bend} ${source.y}, ${target.x - bend} ${target.y}, ${target.x} ${target.y}`;
+  return `M ${source.x} ${source.y} C ${source.x + bend} ${source.y + offset}, ${target.x - bend} ${target.y + offset}, ${target.x} ${target.y}`;
 }
 
 function edgeColor(link) {
   if (link.status === 'Negative') return '#9da7a1';
   if (link.status !== 'Positive') return '#c3a15a';
-  if (link.prevalence === null) return '#287a58';
+  if (link.prevalence === null) return evidenceColor(link.evidenceGroup);
+  const palette = {
+    'Natural direct detection': [14, 67],
+    Serology: [176, 66],
+    'Pooled sequencing': [207, 50],
+    'Experimental evidence': [262, 34],
+    'Indirect or contextual evidence': [42, 47]
+  };
+  const [hue, saturation] = palette[link.evidenceGroup] || [145, 40];
   const lightness = 72 - Math.min(.65, link.prevalence) * 62;
-  return `hsl(14 67% ${lightness}%)`;
+  return `hsl(${hue} ${saturation}% ${lightness}%)`;
+}
+
+function evidenceColor(group) {
+  if (group === 'Natural direct detection') return '#c45c35';
+  if (group === 'Serology') return '#138b83';
+  if (group === 'Pooled sequencing') return '#3976a8';
+  if (group === 'Experimental evidence') return '#7756a4';
+  return '#a98332';
+}
+
+function articleTrackStyle(track, maximumTested) {
+  if (track.tested === null || track.positive === null) {
+    return { color: evidenceColor(track.evidenceGroup), width: 2.2, opacity: .72, dash: true };
+  }
+  if (track.positive === 0) return { color: '#8d9992', width: 2 + 8 * Math.sqrt(track.tested / maximumTested), opacity: .72, dash: false };
+  const prevalence = track.tested > 0 ? track.positive / track.tested : 0;
+  return {
+    color: evidenceColor(track.evidenceGroup),
+    width: 2 + 8 * Math.sqrt(track.tested / maximumTested),
+    opacity: .42 + .58 * Math.sqrt(Math.min(1, prevalence)),
+    dash: false
+  };
 }
 
 function edgeWidth(link, detailed) {
-  const basis = detailed && link.tested ? Math.log1p(link.tested) : Math.log1p(link.studies);
+  if (detailed && link.tested === null) return 2.2;
+  const basis = detailed ? Math.sqrt(link.tested) / 2 : Math.log1p(link.studies);
   return Math.min(9, 1.4 + basis * 1.25);
 }
 
@@ -286,7 +321,9 @@ function selectionMatchesLink(link) {
   if (!state.selected) return true;
   if (state.selected.type === 'host') return link.host === state.selected.value;
   if (state.selected.type === 'virus') return link.virus === state.selected.value;
-  return link.host === state.selected.host && link.virus === state.selected.virus;
+  return link.host === state.selected.host
+    && link.virus === state.selected.virus
+    && (!state.selected.evidenceGroup || link.evidenceGroup === state.selected.evidenceGroup);
 }
 
 function escapeHtml(value) {
@@ -318,7 +355,9 @@ function renderNetworkDetail(network) {
   } else {
     title = `${state.selected.host} ↔ ${state.selected.virus}`;
     type = 'Association';
-    links = network.links.filter((link) => link.host === state.selected.host && link.virus === state.selected.virus);
+    links = network.links.filter((link) => link.host === state.selected.host
+      && link.virus === state.selected.virus
+      && (!state.selected.evidenceGroup || link.evidenceGroup === state.selected.evidenceGroup));
   }
 
   const rows = links.flatMap((link) => link.rows);
@@ -365,18 +404,153 @@ function selectNetworkItem(selection, network) {
   renderNetworkDetail(network);
 }
 
+function buildArticleTracks(link) {
+  const tracks = new Map();
+  link.rows.forEach((row) => {
+    const key = `${row.study_id}\u0000${row.evidence_group}`;
+    if (!tracks.has(key)) tracks.set(key, {
+      studyId: row.study_id,
+      evidenceGroup: row.evidence_group,
+      firstAuthor: row.first_author,
+      publicationYear: row.publication_year,
+      title: row.article_title,
+      url: studyLink(row),
+      rows: []
+    });
+    tracks.get(key).rows.push(row);
+  });
+
+  return [...tracks.values()].map((track) => ({
+    ...track,
+    ...quantitativeSummary(track.rows, true)
+  })).sort((a, b) => Number(a.publicationYear || 9999) - Number(b.publicationYear || 9999)
+    || String(a.firstAuthor).localeCompare(String(b.firstAuthor)));
+}
+
+function renderArticleNetwork(link, network) {
+  const tracks = buildArticleTracks(link);
+  state.networkFocus = { host: link.host, virus: link.virus, evidenceGroup: link.evidenceGroup };
+  state.selected = { type: 'link', ...state.networkFocus };
+  els.networkBack.hidden = false;
+  els.networkBack.textContent = 'Back to species network';
+  els.networkSvg.replaceChildren();
+  els.networkEmpty.hidden = true;
+
+  const width = 980;
+  const top = 72;
+  const rowGap = 58;
+  const height = Math.max(420, top * 2 + Math.max(0, tracks.length - 1) * rowGap);
+  const host = { x: 150, y: height / 2 };
+  const virus = { x: 830, y: height / 2 };
+  const articleX = 390;
+  const articleWidth = 200;
+  const articleHeight = 40;
+  const maximumTested = Math.max(1, ...tracks.map((track) => track.tested || 0));
+
+  els.networkSvg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  els.networkSvg.style.height = `${height}px`;
+  els.networkMode.textContent = 'Article view. Each track is one publication × evidence layer; click an article to open its PubMed or DOI record.';
+  els.networkStatus.textContent = `${formatNumber(tracks.length)} article-level evidence ${tracks.length === 1 ? 'track' : 'tracks'}`;
+
+  const headings = [
+    [24, 'Host species', 'start'],
+    [width / 2, 'Articles', 'middle'],
+    [width - 24, 'Virus taxon', 'end']
+  ];
+  headings.forEach(([x, label, anchor]) => {
+    const heading = createSvgElement('text', { x, y: 29, class: 'network-column-label', 'text-anchor': anchor });
+    heading.textContent = label;
+    els.networkSvg.append(heading);
+  });
+
+  tracks.forEach((track, index) => {
+    const y = evenlySpaced(index, tracks.length, top, height - top);
+    const style = articleTrackStyle(track, maximumTested);
+    const countLabel = track.tested === null ? 'host denominator unavailable' : `${track.positive}/${track.tested} positive/tested`;
+    const trackClass = `article-track${style.dash ? ' nonquantitative' : ''}`;
+    const common = {
+      class: trackClass,
+      stroke: style.color,
+      'stroke-width': style.width,
+      'stroke-opacity': style.opacity
+    };
+    const left = createSvgElement('path', {
+      ...common,
+      d: curvePath(host, { x: articleX, y })
+    });
+    const right = createSvgElement('path', {
+      ...common,
+      d: curvePath({ x: articleX + articleWidth, y }, virus)
+    });
+    const title = `${track.firstAuthor || track.studyId} (${track.publicationYear || 'year not reported'})\n${track.evidenceGroup}\n${countLabel}`;
+    [left, right].forEach((path) => {
+      const tooltip = createSvgElement('title');
+      tooltip.textContent = title;
+      path.append(tooltip);
+    });
+    els.networkSvg.append(left, right);
+
+    const group = createSvgElement('g', {
+      class: 'article-node',
+      tabindex: '0',
+      role: track.url ? 'link' : 'group',
+      'aria-label': `${track.firstAuthor || track.studyId}, ${track.publicationYear || 'year not reported'}; ${track.evidenceGroup}; ${countLabel}`
+    });
+    const rect = createSvgElement('rect', { x: articleX, y: y - articleHeight / 2, width: articleWidth, height: articleHeight });
+    const author = createSvgElement('text', { x: articleX + 12, y: y - 3 });
+    author.textContent = truncateLabel(`${track.firstAuthor || track.studyId} · ${track.publicationYear || 'n.d.'}`, 29);
+    const meta = createSvgElement('text', { x: articleX + 12, y: y + 13, class: 'article-meta' });
+    meta.textContent = track.tested === null ? 'non-quantifiable evidence' : `n/N ${track.positive}/${track.tested}`;
+    const tooltip = createSvgElement('title');
+    tooltip.textContent = `${track.title || track.studyId}\n${track.evidenceGroup}\n${countLabel}`;
+    group.append(rect, author, meta, tooltip);
+    if (track.url) {
+      const openSource = () => window.open(track.url, '_blank', 'noopener,noreferrer');
+      group.addEventListener('click', openSource);
+      group.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openSource();
+        }
+      });
+    }
+    els.networkSvg.append(group);
+  });
+
+  const drawFocusNode = (position, label, type, side) => {
+    const group = createSvgElement('g', { class: `focus-node ${type}` });
+    const circle = createSvgElement('circle', { cx: position.x, cy: position.y, r: 17 });
+    const text = createSvgElement('text', {
+      x: position.x + (side === 'left' ? -28 : 28),
+      y: position.y + 4,
+      'text-anchor': side === 'left' ? 'end' : 'start'
+    });
+    text.textContent = truncateLabel(label, 25);
+    const tooltip = createSvgElement('title');
+    tooltip.textContent = label;
+    group.append(circle, text, tooltip);
+    els.networkSvg.append(group);
+  };
+  drawFocusNode(host, link.host, 'host', 'left');
+  drawFocusNode(virus, link.virus, 'virus', 'right');
+  renderNetworkDetail(network);
+}
+
 function renderNetwork(rows) {
   const network = buildNetwork(rows);
   const hasData = network.links.length > 0;
   state.selected = null;
+  state.networkFocus = null;
+  els.networkBack.hidden = !network.detailed;
+  els.networkBack.textContent = 'Back to families';
   els.networkSvg.replaceChildren();
   els.networkSvg.style.height = '';
   els.networkEmpty.hidden = hasData;
   renderNetworkDetail(network);
 
   els.networkMode.textContent = network.detailed
-    ? `Species-to-virus view for ${els.hostFamily.value}. Edge width reflects non-overlapping host denominators where available.`
-    : 'Overview by host family and virus family. Select a host family above to open the species-level network.';
+    ? 'Species-to-virus view. Select a link to split the association into individual article tracks.'
+    : 'Overview by host and virus family. Click a family, or a connecting line, to expand the network.';
 
   if (!hasData) {
     els.networkSvg.setAttribute('viewBox', '0 0 940 420');
@@ -409,28 +583,47 @@ function renderNetwork(rows) {
   virusHeading.textContent = `${network.detailed ? 'Virus taxa' : 'Virus families'} · ${network.viruses.length}`;
   els.networkSvg.append(hostHeading, virusHeading);
 
+  const pairTotals = new Map();
   network.links.forEach((link) => {
+    const pair = `${link.host}\u0000${link.virus}`;
+    pairTotals.set(pair, (pairTotals.get(pair) || 0) + 1);
+  });
+  const pairSeen = new Map();
+
+  network.links.forEach((link) => {
+    const pair = `${link.host}\u0000${link.virus}`;
+    const seen = pairSeen.get(pair) || 0;
+    pairSeen.set(pair, seen + 1);
+    const offset = (seen - (pairTotals.get(pair) - 1) / 2) * 18;
     const quantitative = link.prevalence === null ? 'no combined prevalence' : `${formatPercent(link.prevalence)} (${link.positive}/${link.tested})`;
     const path = createSvgElement('path', {
-      d: curvePath(hostPositions.get(link.host), virusPositions.get(link.virus)),
-      class: 'network-edge',
+      d: curvePath(hostPositions.get(link.host), virusPositions.get(link.virus), offset),
+      class: `network-edge${network.detailed && link.tested === null ? ' nonquantitative' : ''}`,
       stroke: edgeColor(link),
       'stroke-width': edgeWidth(link, network.detailed),
       tabindex: '0',
       role: 'button',
-      'aria-label': `${link.host} linked to ${link.virus}; ${link.studies} articles; ${link.status}; ${quantitative}`
+      'aria-label': `${link.host} linked to ${link.virus}; ${link.evidenceGroup}; ${link.studies} articles; ${link.status}; ${quantitative}`
     });
     path.dataset.host = link.host;
     path.dataset.virus = link.virus;
     const title = createSvgElement('title');
-    title.textContent = `${link.host} ↔ ${link.virus}\n${link.studies} articles · ${link.status}\n${quantitative}`;
+    title.textContent = `${link.host} ↔ ${link.virus}\n${link.evidenceGroup}\n${link.studies} articles · ${link.status}\n${quantitative}`;
     path.append(title);
-    const selection = { type: 'link', host: link.host, virus: link.virus };
-    path.addEventListener('click', () => selectNetworkItem(selection, network));
+    const activateLink = () => {
+      if (network.detailed) {
+        renderArticleNetwork(link, network);
+      } else {
+        els.hostFamily.value = link.host;
+        els.virusFamily.value = link.virus === 'Unresolved virus family' ? link.virus : link.virus;
+        applyFilters();
+      }
+    };
+    path.addEventListener('click', activateLink);
     path.addEventListener('keydown', (event) => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
-        selectNetworkItem(selection, network);
+        activateLink();
       }
     });
     els.networkSvg.append(path);
@@ -460,11 +653,20 @@ function renderNetwork(rows) {
       title.textContent = name;
       group.append(circle, text, title);
       const selection = { type, value: name };
-      group.addEventListener('click', () => selectNetworkItem(selection, network));
+      const activateNode = () => {
+        if (!network.detailed) {
+          if (type === 'host') els.hostFamily.value = name;
+          if (type === 'virus') els.virusFamily.value = name;
+          applyFilters();
+        } else {
+          selectNetworkItem(selection, network);
+        }
+      };
+      group.addEventListener('click', activateNode);
       group.addEventListener('keydown', (event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
-          selectNetworkItem(selection, network);
+          activateNode();
         }
       });
       els.networkSvg.append(group);
@@ -628,5 +830,14 @@ async function init() {
     control.addEventListener('change', applyFilters);
   });
 els.reset.addEventListener('click', resetFilters);
+els.networkBack.addEventListener('click', () => {
+  if (state.networkFocus) {
+    renderNetwork(state.filtered);
+  } else {
+    els.hostFamily.value = '';
+    els.virusFamily.value = '';
+    applyFilters();
+  }
+});
 
 init();

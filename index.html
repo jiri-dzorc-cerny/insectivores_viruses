@@ -84,22 +84,27 @@
           <p class="section-kicker">Association structure</p>
           <h2 id="network-title">Host–virus network</h2>
         </div>
-        <p id="networkStatus" class="status" aria-live="polite">Loading data…</p>
+        <div class="network-actions">
+          <button id="networkBack" class="button-secondary" type="button" hidden>Back to network</button>
+          <p id="networkStatus" class="status" aria-live="polite">Loading data…</p>
+        </div>
       </div>
 
       <p id="networkMode" class="network-mode"></p>
       <div class="network-legend" aria-label="Network legend">
         <span><i class="legend-dot host-dot"></i>Host</span>
         <span><i class="legend-dot virus-dot"></i>Virus</span>
-        <span><i class="legend-line negative-line"></i>Tested, no positives</span>
-        <span><i class="legend-line positive-line"></i>Positive, quantitative</span>
-        <span><i class="legend-line qualitative-line"></i>Positive, no comparable prevalence</span>
+        <span><i class="legend-line positive-line"></i>Positive direct detection</span>
+        <span><i class="legend-line serology-line"></i>Positive serology</span>
+        <span><i class="legend-line negative-line"></i>No positive result</span>
+        <span><i class="legend-line quantitative-line"></i>Solid: width ∝ √ tested; tone ∝ prevalence</span>
+        <span><i class="legend-line nonquant-line"></i>Dashed: no host denominator</span>
       </div>
 
       <div class="network-layout">
         <div id="networkCanvas" class="network-canvas">
           <svg id="networkSvg" role="img" aria-labelledby="network-title networkDescription"></svg>
-          <p id="networkDescription" class="sr-only">A bipartite network linking Eulipotyphla hosts to reported virus taxa.</p>
+          <p id="networkDescription" class="sr-only">An expandable network linking Eulipotyphla host families and species to virus families, taxa and individual publications.</p>
           <div id="networkEmpty" class="network-empty" hidden>
             <strong>No associations to display</strong>
             <span>Broaden the current filters.</span>

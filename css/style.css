@@ -194,6 +194,15 @@ button:focus-visible,
   text-align: right;
 }
 
+.network-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.network-actions .status { max-width: 390px; }
+
 .coverage-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -266,7 +275,9 @@ button:focus-visible,
 
 .negative-line { border-color: #9da7a1; }
 .positive-line { border-color: #c84f2f; }
-.qualitative-line { border-color: #287a58; }
+.serology-line { border-color: #138b83; }
+.quantitative-line { border-color: #c45c35; border-top-width: 7px; }
+.nonquant-line { border-color: #647b70; border-top-style: dashed; }
 
 .network-layout {
   display: grid;
@@ -330,6 +341,7 @@ button:focus-visible,
   cursor: pointer;
   transition: stroke-opacity .15s ease;
 }
+.network-edge.nonquantitative { stroke-dasharray: 8 6; }
 
 .network-edge:hover,
 .network-edge.is-selected { stroke-opacity: 1; }
@@ -343,6 +355,19 @@ button:focus-visible,
 .network-node.is-selected circle { stroke: #15231b; stroke-width: 4; }
 .network-node.is-muted { opacity: .16; }
 .network-column-label { fill: #69776e; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+
+.article-node { cursor: pointer; }
+.article-node rect { fill: #fff; stroke: #b9c8bf; stroke-width: 1.5; rx: 9; }
+.article-node:hover rect,
+.article-node:focus rect { stroke: #287a58; stroke-width: 2.5; }
+.article-node text { fill: #23362c; font-size: 12px; font-weight: 720; }
+.article-node .article-meta { fill: #65756b; font-size: 11px; font-weight: 550; }
+.article-track { fill: none; stroke-linecap: round; }
+.article-track.nonquantitative { stroke-dasharray: 8 6; stroke-width: 2.2; }
+.focus-node circle { stroke: white; stroke-width: 3; }
+.focus-node.host circle { fill: var(--host); }
+.focus-node.virus circle { fill: var(--virus); }
+.focus-node text { fill: #26372e; font-size: 13px; font-weight: 720; }
 
 .table-wrap {
   overflow-x: auto;
