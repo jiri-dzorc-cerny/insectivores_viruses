@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Interactive explorer of virus evidence reported in Eulipotyphla." />
+  <meta name="description" content="Interactive evidence explorer for viruses reported in Eulipotyphla." />
   <title>Insectivores &amp; Viruses Explorer</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -14,7 +14,7 @@
         <p class="eyebrow">Systematic review companion</p>
         <h1>Insectivores <span>&amp;</span> Viruses</h1>
       </div>
-      <p class="lead">Explore reported virus evidence across Eulipotyphla hosts, locations, years and study methods.</p>
+      <p class="lead">Trace published evidence from host families to species, virus taxa and individual studies.</p>
     </div>
   </header>
 
@@ -27,37 +27,55 @@
         </div>
         <button id="resetFilters" class="button-secondary" type="button">Reset filters</button>
       </div>
+
       <div class="filter-grid">
-        <label>
+        <label class="search-field">
           Search
-          <input id="searchInput" type="search" placeholder="Host, virus, country…" autocomplete="off" />
+          <input id="searchInput" type="search" placeholder="Host, virus, article…" autocomplete="off" />
+        </label>
+        <label>
+          Evidence layer
+          <select id="evidenceGroupFilter"></select>
+        </label>
+        <label>
+          Result
+          <select id="resultFilter"><option value="">All results</option></select>
         </label>
         <label>
           Host family
-          <select id="hostFamilyFilter">
-            <option value="">All host families</option>
-          </select>
+          <select id="hostFamilyFilter"><option value="">All host families</option></select>
+        </label>
+        <label>
+          Virus family
+          <select id="virusFamilyFilter"><option value="">All virus families</option></select>
+        </label>
+        <label>
+          Country
+          <select id="countryFilter"><option value="">All countries</option></select>
         </label>
         <label>
           Detection method
-          <select id="methodFilter">
-            <option value="">All methods</option>
-          </select>
-        </label>
-        <label>
-          Study type
-          <select id="studyTypeFilter">
-            <option value="">All study types</option>
-          </select>
+          <select id="methodFilter"><option value="">All methods</option></select>
         </label>
       </div>
     </section>
 
     <section class="stats-grid" aria-label="Summary statistics">
-      <article class="stat-card"><span id="recordCount">0</span><small>evidence records</small></article>
-      <article class="stat-card"><span id="hostCount">0</span><small>host taxa</small></article>
-      <article class="stat-card"><span id="virusCount">0</span><small>virus taxa</small></article>
-      <article class="stat-card"><span id="associationCount">0</span><small>host–virus links</small></article>
+      <article class="stat-card"><span id="recordCount">—</span><small>evidence records</small></article>
+      <article class="stat-card"><span id="articleCount">—</span><small>articles</small></article>
+      <article class="stat-card"><span id="hostCount">—</span><small>host taxa</small></article>
+      <article class="stat-card"><span id="virusCount">—</span><small>virus taxa</small></article>
+    </section>
+
+    <section class="panel coverage-panel" aria-labelledby="coverage-title">
+      <div class="section-heading">
+        <div>
+          <p class="section-kicker">MDD denominator</p>
+          <h2 id="coverage-title">Host-species coverage</h2>
+        </div>
+        <p class="status">Species with at least one reported virus-specific host denominator</p>
+      </div>
+      <div id="coverageGrid" class="coverage-grid" aria-live="polite"></div>
     </section>
 
     <section class="panel network-panel" aria-labelledby="network-title">
@@ -69,26 +87,29 @@
         <p id="networkStatus" class="status" aria-live="polite">Loading data…</p>
       </div>
 
+      <p id="networkMode" class="network-mode"></p>
       <div class="network-legend" aria-label="Network legend">
-        <span><i class="legend-dot host-dot"></i>Host taxa</span>
-        <span><i class="legend-dot virus-dot"></i>Virus taxa</span>
-        <span>Line width = number of evidence records</span>
+        <span><i class="legend-dot host-dot"></i>Host</span>
+        <span><i class="legend-dot virus-dot"></i>Virus</span>
+        <span><i class="legend-line negative-line"></i>Tested, no positives</span>
+        <span><i class="legend-line positive-line"></i>Positive, quantitative</span>
+        <span><i class="legend-line qualitative-line"></i>Positive, no comparable prevalence</span>
       </div>
 
       <div class="network-layout">
         <div id="networkCanvas" class="network-canvas">
           <svg id="networkSvg" role="img" aria-labelledby="network-title networkDescription"></svg>
-          <p id="networkDescription" class="sr-only">A bipartite network linking host taxa on the left to virus taxa on the right.</p>
+          <p id="networkDescription" class="sr-only">A bipartite network linking Eulipotyphla hosts to reported virus taxa.</p>
           <div id="networkEmpty" class="network-empty" hidden>
-            <strong>No network to display</strong>
-            <span>Add records to <code>data/detections.csv</code> or broaden the current filters.</span>
+            <strong>No associations to display</strong>
+            <span>Broaden the current filters.</span>
           </div>
         </div>
 
         <aside id="networkDetail" class="network-detail" aria-live="polite">
           <p class="detail-label">Selection details</p>
           <h3>Select a node or link</h3>
-          <p>Choose a host, virus or connecting line to isolate its evidence and inspect the associated records.</p>
+          <p>Choose a host, virus or connecting line to inspect its evidence.</p>
         </aside>
       </div>
     </section>
@@ -96,8 +117,8 @@
     <section class="panel" aria-labelledby="table-title">
       <div class="section-heading">
         <div>
-          <p class="section-kicker">Underlying evidence</p>
-          <h2 id="table-title">Evidence table</h2>
+          <p class="section-kicker">Study-level drill-down</p>
+          <h2 id="table-title">Evidence records</h2>
         </div>
         <p id="statusMessage" class="status" aria-live="polite">Loading data…</p>
       </div>
@@ -108,10 +129,11 @@
             <tr>
               <th>Host</th>
               <th>Virus</th>
-              <th>Country</th>
-              <th>Year</th>
+              <th>Evidence</th>
+              <th>Result</th>
+              <th>Place / period</th>
               <th>Method</th>
-              <th>Study type</th>
+              <th>Study</th>
             </tr>
           </thead>
           <tbody id="resultsBody"></tbody>
@@ -124,15 +146,15 @@
       <p class="section-kicker">Next layers</p>
       <h2 id="roadmap-title">Planned modules</h2>
       <div class="roadmap-grid">
-        <article><strong>02</strong><h3>Geographic explorer</h3><p>Map detections using only locations reported in the source studies.</p></article>
-        <article><strong>03</strong><h3>Timeline</h3><p>Show how host–virus evidence accumulated through time.</p></article>
-        <article><strong>04</strong><h3>Evidence layers</h3><p>Compare molecular, isolation, antigen and serological evidence.</p></article>
+        <article><strong>02</strong><h3>Geographic explorer</h3><p>Map evidence by reported country and locality.</p></article>
+        <article><strong>03</strong><h3>Timeline</h3><p>Show the accumulation of evidence by sampling and publication year.</p></article>
+        <article><strong>04</strong><h3>Evidence synthesis</h3><p>Compare direct detection, serology and experimental susceptibility.</p></article>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
-    <div class="container">Insectivores &amp; Viruses systematic review · exploratory web companion</div>
+    <div class="container">Insectivores &amp; Viruses systematic review · data version 2026-08-18</div>
   </footer>
 
   <script src="js/app.js" defer></script>

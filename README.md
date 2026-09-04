@@ -1,33 +1,38 @@
 # Insectivores & Viruses Explorer
 
-Interactive web explorer supporting a systematic review of viruses reported in Eulipotyphla (shrews, moles and hedgehogs).
+Interactive companion to a systematic review of viruses reported in Eulipotyphla (shrews, moles and hedgehogs).
 
-## Current features
+## Current release
 
-- linked full-text, host-family, detection-method and study-type filters,
-- live summary statistics,
-- an interactive bipartite host–virus network,
-- node and link selection with evidence details,
-- a filtered evidence table,
-- responsive and keyboard-accessible controls.
+- seven linked filters covering evidence, result, host, virus, country and method;
+- live counts of evidence records, articles, host taxa and virus taxa;
+- MDD-based host-species coverage by family;
+- interactive host–virus network with family overview and species-level drill-down;
+- study-level evidence table with PubMed or DOI links;
+- responsive, keyboard-accessible static interface suitable for GitHub Pages.
 
-The network is generated directly from `data/detections.csv`. No demonstration or inferred biological records are embedded in the interface. The underlying dataset should contain only information explicitly reported in the source articles unless a derived field is clearly labelled as such.
+The default view shows natural direct-detection evidence. Serology, pooled sequencing, experimental evidence and indirect/contextual evidence remain separate selectable layers.
 
-## Data schema
+## Public data
 
-`data/detections.csv` currently expects these columns:
+The web files are a reproducible, reduced export of the canonical review workbook dated **2026-08-18**. The full workbook is not published.
 
-| Column | Content |
+| File | Purpose |
 | --- | --- |
-| `host_taxon` | Host name as recorded in the review dataset |
-| `host_family` | Host family used for filtering |
-| `virus_taxon` | Virus name or reported taxonomic label |
-| `country` | Reported sampling country |
-| `sampling_year` | Reported sampling year or period |
-| `detection_method` | PCR, sequencing, isolation, serology, antigen, etc. |
-| `study_type` | Natural detection, experimental infection, or another review category |
-| `source_id` | PMID, DOI, or internal source identifier |
-| `notes` | Optional source-grounded note |
+| `data/detections.csv` | Host–virus evidence, place/period, broad method class and host-level counts |
+| `data/studies.csv` | One bibliographic record per study |
+| `data/host_reference.csv` | MDD species denominator for coverage calculations |
+| `data/README.md` | Public-export scope and derived-field definitions |
+
+Working notes, exact source locations, assay-target detail, sequence accessions, narrative interpretation and taxonomy-mapping notes are excluded.
+
+## Scientific conventions
+
+- Direct detection and serology are not pooled.
+- Experimental evidence is kept separate from natural-population evidence.
+- A quantitative prevalence is calculated only from rows explicitly marked as non-overlapping overall host-level results and containing numeric tested and positive counts.
+- Pooled sequencing can support an association but not individual-host prevalence without a host-level denominator.
+- Distinct virus targets are not summed merely because they map to the same genus.
 
 ## Repository structure
 
@@ -35,17 +40,18 @@ The network is generated directly from `data/detections.csv`. No demonstration o
 insectivores_viruses/
 ├── index.html
 ├── README.md
-├── css/
-│   └── style.css
-├── js/
-│   └── app.js
+├── css/style.css
+├── js/app.js
 └── data/
-    └── detections.csv
+    ├── README.md
+    ├── detections.csv
+    ├── studies.csv
+    └── host_reference.csv
 ```
 
 ## Local preview
 
-Because the page loads CSV data with `fetch()`, preview it through a local web server rather than by opening `index.html` directly:
+The page loads CSV files with `fetch()`, so serve it locally instead of opening `index.html` directly:
 
 ```bash
 python -m http.server 8000
@@ -57,5 +63,4 @@ Then open `http://localhost:8000`.
 
 1. Geographic explorer
 2. Timeline
-3. Evidence / methodology explorer
-4. Highlighted experimental infections and possible ecological implications
+3. Evidence-synthesis comparison
