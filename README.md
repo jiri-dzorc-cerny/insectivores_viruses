@@ -8,6 +8,7 @@ Interactive companion to a systematic review of viruses reported in Eulipotyphla
 - live counts of evidence records, articles, host taxa and virus taxa;
 - MDD-based host-species coverage by family;
 - interactive host–virus network with family, species/virus and article-level drill-down;
+- all extant host families remain visible; families or species groups without review records are shown in grey rather than being treated as negative results;
 - article tracks whose solid-line width follows the square root of tested hosts; dashed tracks indicate evidence without a usable host denominator;
 - study-level evidence table with PubMed or DOI links;
 - responsive, keyboard-accessible static interface suitable for GitHub Pages.

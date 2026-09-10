@@ -250,6 +250,32 @@ function buildNetwork(rows) {
     hostWeights.set(link.host, (hostWeights.get(link.host) || 0) + link.studies);
     virusWeights.set(link.virus, (virusWeights.get(link.virus) || 0) + link.studies);
   });
+
+  const referenceOnlyHosts = new Map();
+  const globallyObservedHosts = new Set(state.rows.map((row) => row.host_latin).filter(isReported));
+  if (!detailed) {
+    const referenceFamilies = [...new Set(state.hostReference.map((row) => row.host_family).filter(isReported))];
+    referenceFamilies.forEach((family) => {
+      if (!hostWeights.has(family)) hostWeights.set(family, 0);
+      const observed = state.rows.some((row) => row.host_family === family);
+      if (!observed) {
+        referenceOnlyHosts.set(family, {
+          family,
+          names: state.hostReference.filter((row) => row.host_family === family).map((row) => row.host_latin)
+        });
+      }
+    });
+  } else if (els.hostFamily.value) {
+    const unstudied = state.hostReference
+      .filter((row) => row.host_family === els.hostFamily.value && !globallyObservedHosts.has(row.host_latin))
+      .map((row) => row.host_latin)
+      .sort((a, b) => a.localeCompare(b));
+    if (unstudied.length) {
+      const label = `${formatNumber(unstudied.length)} species without records`;
+      hostWeights.set(label, 0);
+      referenceOnlyHosts.set(label, { family: els.hostFamily.value, names: unstudied });
+    }
+  }
   const sortNodes = (weights) => (a, b) => weights.get(b) - weights.get(a) || a.localeCompare(b);
 
   return {
@@ -259,6 +285,7 @@ function buildNetwork(rows) {
     viruses: [...virusWeights.keys()].sort(sortNodes(virusWeights)),
     hostWeights,
     virusWeights,
+    referenceOnlyHosts,
     truncated
   };
 }
@@ -381,6 +408,19 @@ function renderNetworkDetail(network) {
       <dt>Aggregated prevalence</dt><dd>${escapeHtml(prevalence)}</dd>
       <dt>Countries</dt><dd>${escapeHtml(countries.join(', ') || 'Not reported')}</dd>
       ${partners.length ? `<dt>Connected taxa</dt><dd><ul>${partners.slice(0, 14).map((partner) => `<li>${escapeHtml(partner)}</li>`).join('')}${partners.length > 14 ? `<li>+ ${partners.length - 14} more</li>` : ''}</ul></dd>` : ''}
+    </dl>`;
+}
+
+function renderReferenceDetail(label, reference) {
+  const names = reference.names || [];
+  els.networkDetail.innerHTML = `
+    <p class="detail-label">MDD reference · no evidence records</p>
+    <h3>${escapeHtml(label)}</h3>
+    <p>No virus-specific testing record for these extant taxa was identified in the review dataset. This is missing evidence, not a negative result.</p>
+    <dl>
+      <dt>Host family</dt><dd>${escapeHtml(reference.family)}</dd>
+      <dt>Species without records</dt><dd>${formatNumber(names.length)}</dd>
+      <dt>Included taxa</dt><dd><ul>${names.map((name) => `<li><i>${escapeHtml(name)}</i></li>`).join('')}</ul></dd>
     </dl>`;
 }
 
@@ -538,7 +578,7 @@ function renderArticleNetwork(link, network) {
 
 function renderNetwork(rows) {
   const network = buildNetwork(rows);
-  const hasData = network.links.length > 0;
+  const hasData = network.hosts.length > 0 || network.viruses.length > 0;
   state.selected = null;
   state.networkFocus = null;
   els.networkBack.hidden = !network.detailed;
@@ -630,15 +670,16 @@ function renderNetwork(rows) {
   });
 
   const drawNodes = (names, positions, weights, type) => {
-    const maxWeight = Math.max(...names.map((name) => weights.get(name)));
+    const maxWeight = Math.max(1, ...names.map((name) => weights.get(name)));
     names.forEach((name) => {
       const position = positions.get(name);
-      const radius = 6 + Math.sqrt(weights.get(name) / maxWeight) * 9;
+      const referenceOnly = type === 'host' && network.referenceOnlyHosts.has(name);
+      const radius = referenceOnly ? 9 : 6 + Math.sqrt(weights.get(name) / maxWeight) * 9;
       const group = createSvgElement('g', {
-        class: `network-node ${type}`,
+        class: `network-node ${type}${referenceOnly ? ' reference-only' : ''}`,
         tabindex: '0',
         role: 'button',
-        'aria-label': `${type === 'host' ? 'Host' : 'Virus'} ${name}`
+        'aria-label': `${type === 'host' ? 'Host' : 'Virus'} ${name}${referenceOnly ? '; no evidence records' : ''}`
       });
       group.dataset.type = type;
       group.dataset.value = name;
@@ -658,6 +699,9 @@ function renderNetwork(rows) {
           if (type === 'host') els.hostFamily.value = name;
           if (type === 'virus') els.virusFamily.value = name;
           applyFilters();
+        } else if (referenceOnly) {
+          state.selected = { type: 'reference', value: name };
+          renderReferenceDetail(name, network.referenceOnlyHosts.get(name));
         } else {
           selectNetworkItem(selection, network);
         }
@@ -676,7 +720,10 @@ function renderNetwork(rows) {
   drawNodes(network.hosts, hostPositions, network.hostWeights, 'host');
   drawNodes(network.viruses, virusPositions, network.virusWeights, 'virus');
   const limitNote = network.truncated ? ` · top ${MAX_DETAILED_VIRUS_NODES} virus taxa shown; use virus-family or search filters to narrow` : '';
-  els.networkStatus.textContent = `${formatNumber(network.links.length)} associations${limitNote}`;
+  const referenceNote = network.referenceOnlyHosts.size
+    ? ` · ${formatNumber(network.referenceOnlyHosts.size)} grey reference ${network.referenceOnlyHosts.size === 1 ? 'group' : 'groups'} without records`
+    : '';
+  els.networkStatus.textContent = `${formatNumber(network.links.length)} associations${referenceNote}${limitNote}`;
 }
 
 function appendText(element, value, className) {
@@ -807,7 +854,10 @@ async function init() {
     ].filter((value) => state.rows.some((row) => row.evidence_group === value));
     fillSelect(els.evidenceGroup, evidenceOrder, 'All evidence layers');
     fillSelect(els.result, uniqueValues('result_status', { includeUnreported: true }), 'All results');
-    fillSelect(els.hostFamily, uniqueValues('host_family'), 'All host families');
+    fillSelect(els.hostFamily, [...new Set([
+      ...uniqueValues('host_family'),
+      ...state.hostReference.map((row) => row.host_family).filter(isReported)
+    ])].sort((a, b) => a.localeCompare(b)), 'All host families');
     fillSelect(els.virusFamily, [...new Set(state.rows.map(virusFamily))].sort(), 'All virus families');
     fillSelect(els.country, uniqueValues('country'), 'All countries');
     fillSelect(els.method, uniqueValues('method_group'), 'All methods');

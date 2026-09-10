@@ -265,6 +265,7 @@ button:focus-visible,
 
 .host-dot { background: var(--host); }
 .virus-dot { background: var(--virus); }
+.untested-dot { background: #aeb8b2; }
 
 .legend-line {
   display: inline-block;
@@ -320,6 +321,7 @@ button:focus-visible,
 
 .network-detail {
   min-height: 420px;
+  max-height: 760px;
   padding: 20px;
   overflow: auto;
   border-radius: 14px;
@@ -351,6 +353,8 @@ button:focus-visible,
 .network-node circle { stroke: white; stroke-width: 2.5; transition: opacity .15s ease, stroke-width .15s ease; }
 .network-node.host circle { fill: var(--host); }
 .network-node.virus circle { fill: var(--virus); }
+.network-node.host.reference-only circle { fill: #aeb8b2; }
+.network-node.host.reference-only text { fill: #727d77; font-style: italic; }
 .network-node text { fill: #29382f; font-size: 13px; font-weight: 650; }
 .network-node.is-selected circle { stroke: #15231b; stroke-width: 4; }
 .network-node.is-muted { opacity: .16; }
@@ -452,7 +456,7 @@ tbody tr:hover { background: #f7faf8; }
   .filter-grid { grid-template-columns: repeat(3, 1fr); }
   .coverage-grid { grid-template-columns: repeat(2, 1fr); }
   .network-layout { grid-template-columns: 1fr; }
-  .network-detail { min-height: 0; max-height: none; }
+  .network-detail { min-height: 0; max-height: 520px; }
 }
 
 @media (max-width: 760px) {
