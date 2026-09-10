@@ -6,7 +6,7 @@ These files are derived from the canonical systematic-review workbook dated 2026
 
 - `detections.csv` contains the source-grounded detection and testing fields required by the interactive evidence explorer.
 - `studies.csv` contains one compact bibliographic record per study and joins to detections through `study_id`.
-- `host_reference.csv` contains the current MDD Eulipotyphla species names and families required to calculate taxonomic coverage.
+- `host_reference.csv` contains current extant MDD Eulipotyphla species names and families required to calculate taxonomic coverage. The recently extinct family `Nesophontidae` is excluded from this denominator.
 
 ## Excluded master-workbook content
 

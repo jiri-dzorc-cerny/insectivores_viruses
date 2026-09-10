@@ -22,7 +22,7 @@ The web files are a reproducible, reduced export of the canonical review workboo
 | --- | --- |
 | `data/detections.csv` | Host–virus evidence, place/period, broad method class and host-level counts |
 | `data/studies.csv` | One bibliographic record per study |
-| `data/host_reference.csv` | MDD species denominator for coverage calculations |
+| `data/host_reference.csv` | Extant MDD species denominator for coverage calculations; Nesophontidae excluded |
 | `data/README.md` | Public-export scope and derived-field definitions |
 
 Working notes, exact source locations, assay-target detail, sequence accessions, narrative interpretation and taxonomy-mapping notes are excluded.
